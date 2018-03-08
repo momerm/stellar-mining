@@ -15,23 +15,32 @@ public class Main {
     //    StellarDB db = new StellarDB("jdbc:postgresql://192.168.250.65:5432/stellar", "dbuser", "stellar");
 
         // Parse XDR
-        byte[] txbody = Base64.getDecoder().decode("AAAAAERmsKL73CyLV/HvjyQCERDXXpWE70Xhyb6MR5qPO3yQAAAAZAAIbkEAAAATAAAAAAAAAANfnyLrtrcJnWJ3nXVFfIwgEiEJZgAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAP1qe44j+i4uIT+arbD4QDQBt8ryEeJd7a0jskQ3nwDeAAAAAQAAAACMeNF28DnnCSCEKAXA9o9jW52f/KL1uSismOAQsmeU7QAAAAAAAAAAD39IOAAAAAAAAAABjzt8kAAAAEA/6WVMUbxXjNZmkLc+Lmb0Wdqy9AJQzdmKoqC31RhdTykICq4/cx79+Ir6bW6qGR5orNY7DjUac4Mibb+nHrcM");
+        byte[] txbody = Base64.getDecoder().decode("AAAAAATHfx3AZPvVeirajtLvcQDevP6EK2tz181Gwvw9Uim/AAAAZAAplwcAAAABAAAAAAAAAAAAAAABAAAAAAAAAAEAAAAAZIgfZxM4Y1vjfyo+5F9Q3tSjRyh670waceCZWl2I93wAAAAAAAAAAACYkcYAAAAAAAAAAT1SKb8AAABAQkqDVUKEHgUGSC+xYIq1nK3awhp1vUUSgfUMIkJG1jO3oy/HgHCqlU5CLFSgVfQMmRQ7Z0r3gxK5nVLSuTxfAg==");
         InputStream stream = new ByteArrayInputStream(txbody);
         XdrDataInputStream xdrStream = new XdrDataInputStream(stream);
         TransactionEnvelope txEnvelope = TransactionEnvelope.decode(xdrStream);
         xdrStream.close();
         stream.close();
 
-        byte[] txmeta = Base64.getDecoder().decode("AAAAAAAAAAEAAAAEAAAAAwAIgTMAAAAAAAAAAIx40XbwOecJIIQoBcD2j2NbnZ/8ovW5KKyY4BCyZ5TtAAAAB3In0PwACIEDAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAQAIgTMAAAAAAAAAAIx40XbwOecJIIQoBcD2j2NbnZ/8ovW5KKyY4BCyZ5TtAAAAB4GnGTQACIEDAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAwAIgTMAAAAAAAAAAP1qe44j+i4uIT+arbD4QDQBt8ryEeJd7a0jskQ3nwDeAAKJwEvUnFYACD1BAAAAHgAAAAoAAAAAAAAAAAAAAAABAAAAAAAACgAAAAARC07BokpLTOF+/vVKBwiAlop7hHGJTNeGGlY4MoPykwAAAAEAAAAAK+Lzfd3yDD+Ov0GbYu1g7SaIBrKZeBUxoCunkLuI7aoAAAABAAAAAERmsKL73CyLV/HvjyQCERDXXpWE70Xhyb6MR5qPO3yQAAAAAQAAAABSORGwAdyuanN3sNOHqNSpACyYdkUM3L8VafUu69EvEgAAAAEAAAAAeCzqJNkMM/jLvyuMIfyFHljBlLCtDyj17RMycPuNtRMAAAABAAAAAIEi4R7juq15ymL00DNlAddunyFT4FyUD4muC4t3bobdAAAAAQAAAACaNpLL5YMfjOTdXVEqrAh99LM12sN6He6pHgCRAa1f1QAAAAEAAAAAqB+lfAPV9ak+Zkv4aTNZwGaFFAfui4+yhM3dGhoYJ+sAAAABAAAAAMNJrEvdMg6M+M+n4BDIdzsVSj/ZI9SvAp7mOOsvAD/WAAAAAQAAAADbHA6xiKB1+G79mVqpsHMOleOqKa5mxDpP5KEp/Xdz9wAAAAEAAAAAAAAAAAAAAAEACIEzAAAAAAAAAAD9anuOI/ouLiE/mq2w+EA0AbfK8hHiXe2tI7JEN58A3gACicA8VVQeAAg9QQAAAB4AAAAKAAAAAAAAAAAAAAAAAQAAAAAAAAoAAAAAEQtOwaJKS0zhfv71SgcIgJaKe4RxiUzXhhpWODKD8pMAAAABAAAAACvi833d8gw/jr9Bm2LtYO0miAaymXgVMaArp5C7iO2qAAAAAQAAAABEZrCi+9wsi1fx748kAhEQ116VhO9F4cm+jEeajzt8kAAAAAEAAAAAUjkRsAHcrmpzd7DTh6jUqQAsmHZFDNy/FWn1LuvRLxIAAAABAAAAAHgs6iTZDDP4y78rjCH8hR5YwZSwrQ8o9e0TMnD7jbUTAAAAAQAAAACBIuEe47qtecpi9NAzZQHXbp8hU+BclA+JrguLd26G3QAAAAEAAAAAmjaSy+WDH4zk3V1RKqwIffSzNdrDeh3uqR4AkQGtX9UAAAABAAAAAKgfpXwD1fWpPmZL+GkzWcBmhRQH7ouPsoTN3RoaGCfrAAAAAQAAAADDSaxL3TIOjPjPp+AQyHc7FUo/2SPUrwKe5jjrLwA/1gAAAAEAAAAA2xwOsYigdfhu/ZlaqbBzDpXjqimuZsQ6T+ShKf13c/cAAAABAAAAAAAAAAA=");
+        byte[] txmeta = Base64.getDecoder().decode("AAAAAAAAAAA=");
         stream = new ByteArrayInputStream(txmeta);
         xdrStream = new XdrDataInputStream(stream);
         TransactionMeta txMeta = TransactionMeta.decode(xdrStream);
         xdrStream.close();
         stream.close();
 
-        // Get all accountIDS and Signer Keys in the meta data
+
         HashMap<AccountID, Signer[]> accountAndSigners = new HashMap<>();
         ArrayList<AccountID> accountIDs = new ArrayList<>();
+
+        // Get all source account IDs in the transaction
+        accountIDs.add(txEnvelope.getTx().getSourceAccount());
+        for(Operation op : txEnvelope.getTx().getOperations()) {
+            if(op.getSourceAccount() != null)
+                accountIDs.add(op.getSourceAccount());
+        }
+
+        // Get all account IDs and Signer Keys in the meta data
         for(OperationMeta opMeta : txMeta.getOperations()) {
             for(LedgerEntryChange lChange : opMeta.getChanges().getLedgerEntryChanges()) {
                 LedgerEntry.LedgerEntryData ledgerEntryData = null;
