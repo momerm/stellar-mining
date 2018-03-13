@@ -1,19 +1,18 @@
 package main;
 
+import org.stellar.sdk.KeyPair;
 import org.stellar.sdk.xdr.AccountID;
-import org.stellar.sdk.xdr.SignerKeyType;
+import org.stellar.sdk.xdr.SignerKey;
 
 public class SignatureEvent {
     private byte[] txId;
     private AccountID accountID; // Account to which the signer key belongs
-    private SignerKeyType type; // Type of signature
-    private byte[] signerKey;
+    private SignerKey signerKey;
     private byte[] signature;
 
-    public SignatureEvent(byte[] txId, AccountID accountID, SignerKeyType type, byte[] signerKey, byte[] signature) {
+    public SignatureEvent(byte[] txId, AccountID accountID, SignerKey signerKey, byte[] signature) {
         this.txId = txId;
         this.accountID = accountID;
-        this.type = type;
         this.signerKey = signerKey;
         this.signature = signature;
     }
@@ -26,12 +25,18 @@ public class SignatureEvent {
         return accountID;
     }
 
-    public SignerKeyType getType() {
-        return type;
+    public String getAccountIDstr() {
+        KeyPair keyPair = KeyPair.fromXdrPublicKey(accountID.getAccountID());
+        return keyPair.getAccountId();
     }
 
-    public byte[] getSignerKey() {
+    public SignerKey getSignerKey() {
         return signerKey;
+    }
+
+    public String getSignerKeyStr() {
+        KeyPair keyPair = KeyPair.fromXdrSignerKey(signerKey);
+        return keyPair.getAccountId();
     }
 
     public byte[] getSignature() {

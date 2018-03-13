@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Stellar data mining:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Stellar_data_mining_jar</output-path>
+    <root id="archive" name="stellar_miner.jar">
+      <element id="module-output" name="Stellar data mining" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/stellar-sdk.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/postgresql-42.2.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-codec-1.11.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="stellar-sdk">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/stellar-sdk.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -8,10 +8,12 @@ import org.stellar.sdk.xdr.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TransactionParser {
-    public static List<SignatureEvent> getSignatureEvents(String txId_hex, String txEnvelope_base64, String txMeta_base64) throws DecoderException, IOException {
+    public static List<SignatureEvent> getSignatureEvents(String txId_hex, String txEnvelope_base64, String txMeta_base64, StellarDB stellarDB) throws DecoderException, IOException, SQLException {
         byte[] txId_bytes = Hex.decodeHex(txId_hex);
 
         // Parse XDR
@@ -29,11 +31,16 @@ public class TransactionParser {
         xdrStream.close();
         stream.close();
 
-
-        HashMap<AccountID, Signer[]> accountAndSigners = new HashMap<>();
+        // Account IDs found in the transaction body and meta
         ArrayList<AccountID> accountIDs = new ArrayList<>();
 
-        // Get all source account IDs in the transaction
+        // AccountID and Corresponding Signers found in the meta
+        HashMap<AccountID, Signer[]> accountAndSigners = new HashMap<>();
+
+        // Account and signer keys from the database. Only used if we cannot find the key in the transaction body or meta
+        HashMap<String, List<String>> accountAndSignersDB = null;
+
+        // Get all source account IDs in the transaction body
         accountIDs.add(txEnvelope.getTx().getSourceAccount());
         for(Operation op : txEnvelope.getTx().getOperations()) {
             if(op.getSourceAccount() != null)
@@ -62,7 +69,6 @@ public class TransactionParser {
                 if(ledgerEntryData != null) {
                     switch (ledgerEntryData.getDiscriminant()) {
                         case ACCOUNT:
-                            // Check if this is a source account
                             accountIDs.add(ledgerEntryData.getAccount().getAccountID());
                             accountAndSigners.put(ledgerEntryData.getAccount().getAccountID(), ledgerEntryData.getAccount().getSigners());
                             break;
@@ -78,14 +84,24 @@ public class TransactionParser {
                     }
                 }
                 if(ledgerKey != null) {
-                    accountIDs.add(ledgerKey.getAccount().getAccountID());
+                    switch (ledgerKey.getDiscriminant()) {
+                        case ACCOUNT:
+                            accountIDs.add(ledgerKey.getAccount().getAccountID());
+                            break;
+                        case TRUSTLINE:
+                            accountIDs.add(ledgerKey.getTrustLine().getAccountID());
+                            break;
+                        case OFFER:
+                            accountIDs.add(ledgerKey.getOffer().getSellerID());
+                            break;
+                        case DATA:
+                            accountIDs.add(ledgerKey.getData().getAccountID());
+                            break;
+                    }
                 }
             }
         }
-        assert accountAndSigners.size() > 0;
 
-
-        // Store signatures and corresponding public keys. Use signer
         ArrayList<SignatureEvent> signatureEvents = new ArrayList<>();
 
         // For each signature try to find a public key using the hint.
@@ -104,10 +120,9 @@ public class TransactionParser {
                         signatureEvents.add(new SignatureEvent(
                                 txId_bytes,
                                 accountID,
-                                SignerKeyType.SIGNER_KEY_TYPE_ED25519,
-                                accountID.getAccountID().getEd25519().getUint256(),
+                                keyPair.getXdrSignerKey(),
                                 signature));
-                        break sigloop;
+                        continue sigloop;
                     }
                 }
             }
@@ -116,55 +131,123 @@ public class TransactionParser {
                 AccountID accountID = entry.getKey();
                 Signer[] signers = entry.getValue();
 
-                byte key[];
                 for(Signer signer : signers) {
                     switch (signer.getKey().getDiscriminant()) {
-                        case SIGNER_KEY_TYPE_ED25519:
-                            key = signer.getKey().getEd25519().getUint256();
-                            if(key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
+                        case SIGNER_KEY_TYPE_ED25519: {
+                            byte[] key = signer.getKey().getEd25519().getUint256();
+                            if (key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
                                 // Verify signature to make sure we have the right key
                                 KeyPair keyPair = KeyPair.fromPublicKey(key);
-                                if(keyPair.verify(txId_bytes, signature)) {
+                                if (keyPair.verify(txId_bytes, signature)) {
                                     signatureEvents.add(new SignatureEvent(
                                             txId_bytes,
                                             accountID,
-                                            SignerKeyType.SIGNER_KEY_TYPE_ED25519,
-                                            key,
+                                            signer.getKey(),
                                             signature));
-                                    break sigloop;
+                                    continue sigloop;
                                 }
                             }
                             break;
-                        case SIGNER_KEY_TYPE_PRE_AUTH_TX:
+                        }
+                        case SIGNER_KEY_TYPE_PRE_AUTH_TX: {
                             // TODO: Verify this signature to make sure we have the right key
-                            key = signer.getKey().getPreAuthTx().getUint256();
-                            if(key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
+                            byte[] key = signer.getKey().getPreAuthTx().getUint256();
+                            if (key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
                                 signatureEvents.add(new SignatureEvent(
                                         txId_bytes,
                                         accountID,
-                                        SignerKeyType.SIGNER_KEY_TYPE_PRE_AUTH_TX,
-                                        key,
+                                        signer.getKey(),
                                         signature));
-                                break sigloop;
+                                continue sigloop;
                             }
                             break;
-                        case SIGNER_KEY_TYPE_HASH_X:
+                        }
+                        case SIGNER_KEY_TYPE_HASH_X: {
                             // TODO: Verify this signature to make sure we have the right key
-                            key = signer.getKey().getHashX().getUint256();
-                            if(key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
+                            byte[] key = signer.getKey().getHashX().getUint256();
+                            if (key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
                                 signatureEvents.add(new SignatureEvent(
                                         txId_bytes,
                                         accountID,
-                                        SignerKeyType.SIGNER_KEY_TYPE_HASH_X,
-                                        key,
+                                        signer.getKey(),
                                         signature));
-                                break sigloop;
+                                continue sigloop;
                             }
                             break;
+                        }
                     }
                 }
             }
-        }
+            // Search in database
+            if(accountAndSignersDB == null) {
+                // Get signers from the database
+                List<String> accountIDStrings = accountIDs.stream().map((accountID -> KeyPair.fromXdrPublicKey(accountID.getAccountID()).getAccountId())).collect(Collectors.toList());
+                accountAndSignersDB = stellarDB.getAccountSigners(accountIDStrings);
+            }
+            for(Map.Entry<String, List<String>> entry : accountAndSignersDB.entrySet()) {
+                String accountIDStr = entry.getKey();
+                AccountID accountID = new AccountID();
+                accountID.setAccountID(KeyPair.fromAccountId(accountIDStr).getXdrPublicKey());
+
+                List<String> signerKeysStr = entry.getValue();
+                List<SignerKey> signerKeys = signerKeysStr.stream().map(s -> KeyPair.fromAccountId(s).getXdrSignerKey()).collect(Collectors.toList());
+
+                for(SignerKey signerKey : signerKeys) {
+                    switch (signerKey.getDiscriminant()) {
+                        case SIGNER_KEY_TYPE_ED25519: {
+                            byte[] key = signerKey.getEd25519().getUint256();
+                            if (key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
+                                // Verify signature to make sure we have the right key
+                                KeyPair keyPair = KeyPair.fromPublicKey(key);
+                                if (keyPair.verify(txId_bytes, signature)) {
+                                    signatureEvents.add(new SignatureEvent(
+                                            txId_bytes,
+                                            accountID,
+                                            signerKey,
+                                            signature));
+                                    continue sigloop;
+                                }
+                            }
+                            break;
+                        }
+                        case SIGNER_KEY_TYPE_PRE_AUTH_TX: {
+                            // TODO: Verify this signature to make sure we have the right key
+                            byte[] key = signerKey.getPreAuthTx().getUint256();
+                            if (key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
+                                signatureEvents.add(new SignatureEvent(
+                                        txId_bytes,
+                                        accountID,
+                                        signerKey,
+                                        signature));
+                                continue sigloop;
+                            }
+                            break;
+                        }
+                        case SIGNER_KEY_TYPE_HASH_X: {
+                            // TODO: Verify this signature to make sure we have the right key
+                            byte[] key = signerKey.getHashX().getUint256();
+                            if (key[28] == hint[0] && key[29] == hint[1] && key[30] == hint[2] && key[31] == hint[3]) {
+                                signatureEvents.add(new SignatureEvent(
+                                        txId_bytes,
+                                        accountID,
+                                        signerKey,
+                                        signature));
+                                continue sigloop;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // No signer key found
+            signatureEvents.add(new SignatureEvent(
+                    txId_bytes,
+                    txEnvelope.getTx().getSourceAccount(), // Source account
+                    null,
+                    signature));
+        } // sigloop
+
         return signatureEvents;
     }
 }
