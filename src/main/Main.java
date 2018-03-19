@@ -94,13 +94,13 @@ public class Main {
                 System.out.println("==================================================");
                 System.out.println("  1. Create mining database");
                 System.out.println("  2. Mine digital signature events");
-                System.out.println("  3. Find bad randoms");
-                System.out.println("  4. Create bad randoms HTML file\n");
+                System.out.println("  3. Create bad randoms HTML file");
+                System.out.println("  4. Create repeated signer keys HTML file\n");
                 System.out.print("Choose one (q to quit): ");
 
                 choice = getChar();
 
-            } while (choice < '1' || choice > '4' && choice != 'q');
+            } while (choice < '1' || choice > '6' && choice != 'q');
 
             if (choice == 'q') break;
 
@@ -111,22 +111,20 @@ public class Main {
                     // Create mining database
                     promptCreateMiningDB(dbUrl, dbUser, dbPass);
                     break;
-                case '2': {
+                case '2':
                     // Mine digital signature events
                     SignatureMiner miner = new SignatureMiner(dbUrl, dbUser, dbPass);
                     miner.mineSignatures();
-                }
                     break;
-                case '3': {
-                    // Find bad randoms
-                    BadRandomMiner miner = new BadRandomMiner(dbUrl, dbUser, dbPass);
-                    miner.mineBadRandoms();
-                    break;
-                }
-                case '4':
+                case '3':
                     // Create bad randoms HTML file
                     BadRandomHtmlBuilder badRandomHtmlBuilder = new BadRandomHtmlBuilder(dbUrl, dbUser, dbPass);
-                    badRandomHtmlBuilder.BuildHTML();
+                    badRandomHtmlBuilder.buildHTML();
+                    break;
+                case '4':
+                    // Create repeated signer keys HTML file
+                    RepeatedSignerKeyHtmlBuilder htmlBuilder = new RepeatedSignerKeyHtmlBuilder(dbUrl, dbUser, dbPass);
+                    htmlBuilder.buildHTML();
                     break;
             }
             System.out.println();

@@ -59,7 +59,7 @@ public class SignatureMiner {
         // Extract signature events from transactions
         int n = 0; // Transaction count
         int m = 0; // Signature count
-        List<SignatureEvent> allSignatureEvents = new ArrayList<>(520);
+        List<SignatureEvent> allSignatureEvents = new ArrayList<>(1040);
         try {
             ResultSet txResultSet = stellarDB.getTransactions();
             while (txResultSet.next()) {
@@ -71,7 +71,7 @@ public class SignatureMiner {
                 allSignatureEvents.addAll(signatureEvents);
                 m += signatureEvents.size();
 
-                if(allSignatureEvents.size() > 500) {
+                if(allSignatureEvents.size() > 1000) {
                     miningDB.insertSignatureEvents(allSignatureEvents);
                     allSignatureEvents.clear();
                 }

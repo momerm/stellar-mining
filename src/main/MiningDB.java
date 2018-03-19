@@ -4,6 +4,7 @@ import javafx.util.Pair;
 import org.apache.commons.codec.binary.Hex;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -16,7 +17,7 @@ public class MiningDB {
     public static final String TABLE_PRE_AUTH_TX = "sigPreAuthTx";
     public static final String TABLE_UNKNOWN = "sigUnknown"; // Unable to find signer key
     public static final String TABLE_BAD_RANDOMS = "badrandoms";
-
+    public static final String TABLE_REPEATED_SIGNER_KEYS = "repeatedSignerKeys";
 
     public MiningDB(String url, String username, String password) throws SQLException {
         conn = DriverManager.getConnection(url, username, password);
@@ -118,6 +119,23 @@ public class MiningDB {
 
     public void dropTableBadRandom() throws SQLException {
         String query = "DROP TABLE IF EXISTS " + TABLE_BAD_RANDOMS + ";";
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate(query);
+        stmt.close();
+    }
+
+    public void createTableRepeatedSignerKey() throws SQLException {
+        String query = "CREATE TABLE " + TABLE_REPEATED_SIGNER_KEYS + " (\n" +
+                "signerkey VARCHAR(56) PRIMARY KEY,\n" +
+                "count integer NOT NULL\n" +
+                ");";
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate(query);
+        stmt.close();
+    }
+
+    public void dropTableRepeatedSignerKey() throws SQLException {
+        String query = "DROP TABLE IF EXISTS " + TABLE_REPEATED_SIGNER_KEYS + ";";
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
         stmt.close();
@@ -243,9 +261,9 @@ public class MiningDB {
         stmt.close();
     }
 
-    public ResultSet findBadRandoms() throws SQLException {
+    public ResultSet getBadRandoms() throws SQLException {
         // Find signatures that use the same random.
-        Statement stmt = conn.createStatement();
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         String sql = "SELECT r, COUNT(r)\n" +
                 "FROM " + TABLE_ED25519 + "\n" +
                 "GROUP BY r\n" +
@@ -261,7 +279,7 @@ public class MiningDB {
                 + "'" + nUses   + "');";
         stmt.executeUpdate(sql);
     }
-    */
+
 
     public void insertBadRandoms(List<Pair<String, Integer>> randoms) throws SQLException {
         String sql = "INSERT INTO " + TABLE_BAD_RANDOMS + " VALUES(?, ?)";
@@ -279,23 +297,15 @@ public class MiningDB {
         conn.setAutoCommit(true);
         pstmt.close();
     }
+    */
 
+    /*
     public ResultSet getBadRandoms() throws SQLException {
-        Statement stmt = conn.createStatement();
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         String sql = "SELECT * FROM " + TABLE_BAD_RANDOMS + ";";
         return stmt.executeQuery(sql);
-    }
+    }*/
 
-    public int getnBadRandoms() throws SQLException {
-        Statement stmt = conn.createStatement();
-        String sql = "SELECT COUNT(*) FROM " + TABLE_BAD_RANDOMS + ";";
-        ResultSet rs = stmt.executeQuery(sql);
-        rs.next();
-        int nBadRandoms = rs.getInt(1);
-        rs.close();
-        stmt.close();
-        return nBadRandoms;
-    }
 
     public BadRandom getBadRandomUses(String random) throws SQLException {
         BadRandom badRandom = new BadRandom(random);
@@ -323,6 +333,33 @@ public class MiningDB {
         resultSet.close();
         stmt.close();
         return badRandom;
+    }
+
+    public ResultSet getRepeatedSignerKeys() throws SQLException {
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        String sql = "SELECT signerkey, COUNT(signerkey) FROM " + TABLE_ED25519 + "\n" +
+                "GROUP BY signerkey\n" +
+                "HAVING COUNT(signerkey) > 1000;";
+        return stmt.executeQuery(sql);
+    }
+
+    // Get all accounts that signed a transaction using the specified ed25519 key.
+    public List<String> getAccountsBySignerKey(String signerKey) throws SQLException {
+        Statement stmt = conn.createStatement();
+        String sql = "SELECT accountid FROM " + TABLE_ED25519 + "\n" +
+                "WHERE signerkey='" + signerKey + "'\n" +
+                "GROUP BY accountid;";
+
+        List<String> accountIDs = new ArrayList<>();
+
+        ResultSet rs = stmt.executeQuery(sql);
+        while (rs.next()) {
+            accountIDs.add(rs.getString(1));
+        }
+        rs.close();
+        stmt.close();
+
+        return accountIDs;
     }
 
     public void close() throws SQLException {
