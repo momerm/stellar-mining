@@ -1,7 +1,10 @@
 package main;
 
-import java.io.*;
-import java.sql.*;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class Main {
 
@@ -100,7 +103,7 @@ public class Main {
 
                 choice = getChar();
 
-            } while (choice < '1' || choice > '6' && choice != 'q');
+            } while (choice < '1' || choice > '4' && choice != 'q');
 
             if (choice == 'q') break;
 

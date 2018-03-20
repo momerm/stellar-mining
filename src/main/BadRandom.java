@@ -7,10 +7,10 @@ import java.util.stream.Collectors;
 
 public class BadRandom {
     public static class BadRandomContext {
-        private String txID;
-        private String signature;
-        private String accountID;
-        private String signerKey;
+        private final String txID;
+        private final String signature;
+        private final String accountID;
+        private final String signerKey;
 
         public BadRandomContext(String txID, String signature, String accountID, String signerKey) {
             this.txID = txID;
@@ -36,8 +36,8 @@ public class BadRandom {
         }
     }
 
-    private String random;
-    private List<BadRandomContext> badRandomUses;
+    private final String random;
+    private final List<BadRandomContext> badRandomUses;
 
     public BadRandom(String random) {
         this.random = random;

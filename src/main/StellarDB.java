@@ -1,9 +1,5 @@
 package main;
 
-import org.stellar.sdk.xdr.AccountID;
-import org.stellar.sdk.xdr.PublicKey;
-import org.stellar.sdk.xdr.SignerKey;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +17,7 @@ public class StellarDB {
         return stmt.executeQuery("SELECT txid, txbody, txmeta FROM txhistory;");
     }
 
+    /*
     public List<String> getAccountPublicKeys(String accountID) throws SQLException {
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT publickey FROM signers WHERE accountid = '" + accountID + "';");
@@ -32,7 +29,7 @@ public class StellarDB {
         rs.close();
         stmt.close();
         return publicKeys;
-    }
+    }*/
 
     public HashMap<String, List<String>> getAccountSigners(List<String> accountIDs) throws SQLException {
         StringBuilder accountIDstr = new StringBuilder();

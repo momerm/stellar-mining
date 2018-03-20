@@ -5,10 +5,10 @@ import org.stellar.sdk.xdr.AccountID;
 import org.stellar.sdk.xdr.SignerKey;
 
 public class SignatureEvent {
-    private byte[] txId;
-    private AccountID accountID; // Account to which the signer key belongs
-    private SignerKey signerKey;
-    private byte[] signature;
+    private final byte[] txId;
+    private final AccountID accountID; // Account to which the signer key belongs
+    private final SignerKey signerKey;
+    private final byte[] signature;
 
     public SignatureEvent(byte[] txId, AccountID accountID, SignerKey signerKey, byte[] signature) {
         this.txId = txId;
