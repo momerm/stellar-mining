@@ -36,6 +36,9 @@ public class RepeatedSignerKeyHtmlBuilder {
                     "td {\n" +
                     "\tpadding: 5px;\n" +
                     "}\n" +
+                    ".left-align {\n" +
+                    "\ttext-align: left;\n" +
+                    "}\n" +
                     "</style>\n");
             writer.write("</head>\n");
             writer.write("<body>\n");
@@ -61,7 +64,7 @@ public class RepeatedSignerKeyHtmlBuilder {
             writer.write("<tr>\n");
             writer.write("<th>Count</th>\n");
             writer.write("<th>Signer Key</th>\n");
-            writer.write("<th>Account IDs</th>\n");
+            writer.write("<th class=\"left-align\">Account IDs</th>\n");
             writer.write("</tr>\n");
             writer.write("</thead>\n");
 
