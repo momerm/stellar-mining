@@ -40,50 +40,48 @@ public class SignatureMiner {
         System.out.println("Mining digital signatures...");
         // Create tables in mining database
         try {
-            miningDB.dropTableEd25519();
-            miningDB.dropTableHashX();
-            miningDB.dropTablePreAuthTx();
-            miningDB.dropTableUnknown();
-
-            miningDB.createTableEd25519();
-            miningDB.createTableHashX();
-            miningDB.createTablePreAuthTx();
-            miningDB.createTableUnknown();
+            miningDB.clearTable(MiningDB.TABLE_ED25519);
+            miningDB.clearTable(MiningDB.TABLE_HASH_X);
+            miningDB.clearTable(MiningDB.TABLE_PRE_AUTH_TX);
+            miningDB.clearTable(MiningDB.TABLE_UNKNOWN);
         }
         catch (SQLException e) {
-            System.out.println("Failed to create tables in mining database.");
+            System.out.println("Failed to clear tables in mining database.");
             e.printStackTrace();
             return;
         }
 
         // Extract signature events from transactions
-        int n = 0; // Transaction count
-        int m = 0; // Signature count
-        List<SignatureEvent> allSignatureEvents = new ArrayList<>(1040);
+        int txCount = 0; // Number of transactions processed
+        int sigCount = 0; // Number of signatures found
+
+        List<SignatureEvent> allSignatureEvents = new ArrayList<>(10030);
         try {
-            ResultSet txResultSet = stellarDB.getTransactions();
-            while (txResultSet.next()) {
-                String txId_hex = txResultSet.getString(1);
-                String txBody_base64 = txResultSet.getString(2);
-                String txMeta_base64 = txResultSet.getString(3);
+            ResultSet rs = stellarDB.getTransactions();
+            while (rs.next()) {
+                String txId_hex = rs.getString(1);
+                String txBody_base64 = rs.getString(2);
+                String txMeta_base64 = rs.getString(3);
 
                 List<SignatureEvent> signatureEvents = TransactionParser.getSignatureEvents(txId_hex, txBody_base64, txMeta_base64, stellarDB);
                 allSignatureEvents.addAll(signatureEvents);
-                m += signatureEvents.size();
+                sigCount += signatureEvents.size();
 
-                if(allSignatureEvents.size() > 1000) {
+                if(allSignatureEvents.size() > 10000) {
                     miningDB.insertSignatureEvents(allSignatureEvents);
                     allSignatureEvents.clear();
                 }
 
-                System.out.printf("\rProcessed %d transactions", ++n);
+                txCount++;
+                System.out.printf("\rProcessed %d Transactions. Found %d signatures.", txCount, sigCount);
             }
-            txResultSet.close();
+            rs.getStatement().close();
+            rs.close();
 
             if(allSignatureEvents.size() > 0)
                 miningDB.insertSignatureEvents(allSignatureEvents);
 
-            System.out.println("\nFound " + m + " signatures.");
+            System.out.println("\nFound " + sigCount + " signatures.");
             System.out.println("\nDone");
         } catch (Exception e) {
             System.out.println("Error processing transactions.");

@@ -1,5 +1,6 @@
 package main;
 
+import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,6 +41,12 @@ public class Main {
         stmt.executeUpdate(sql);
         System.out.println("Database \"mining\" created successfully.");
         conn.close();
+
+        MiningDB miningDB = new MiningDB(dbUrl + "mining", dbUser, dbPass);
+        miningDB.createTableEd25519();
+        miningDB.createTableHashX();
+        miningDB.createTablePreAuthTx();
+        miningDB.createTableUnknown();
     }
 
     private static void dropMiningDB(String dbUrl, String dbUser, String dbPass) throws SQLException {

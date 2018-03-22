@@ -10,10 +10,12 @@ public class StellarDB {
 
     public StellarDB(String url, String username, String password) throws SQLException {
         conn = DriverManager.getConnection(url, username, password);
+        conn.setAutoCommit(false);
     }
 
     public ResultSet getTransactions() throws SQLException {
         Statement stmt = conn.createStatement();
+        stmt.setFetchSize(10000);
         return stmt.executeQuery("SELECT txid, txbody, txmeta FROM txhistory;");
     }
 
@@ -46,7 +48,6 @@ public class StellarDB {
 
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT accountid, publickey FROM signers WHERE accountid IN " + accountIDstr.toString() + ";");
-
         HashMap<String, List<String>> hashMap = new HashMap<>();
 
         while(rs.next()) {

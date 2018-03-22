@@ -18,6 +18,7 @@ public class MiningDB {
 
     public MiningDB(String url, String username, String password) throws SQLException {
         conn = DriverManager.getConnection(url, username, password);
+        conn.setAutoCommit(false);
     }
 
     public void createTableEd25519() throws SQLException {
@@ -32,13 +33,7 @@ public class MiningDB {
 
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
-        stmt.close();
-    }
-
-    public void dropTableEd25519() throws SQLException {
-        String query = "DROP TABLE IF EXISTS " + TABLE_ED25519 + ";";
-        Statement stmt = conn.createStatement();
-        stmt.executeUpdate(query);
+        conn.commit();
         stmt.close();
     }
 
@@ -53,13 +48,7 @@ public class MiningDB {
 
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
-        stmt.close();
-    }
-
-    public void dropTableHashX() throws SQLException {
-        String query = "DROP TABLE IF EXISTS " + TABLE_HASH_X + ";";
-        Statement stmt = conn.createStatement();
-        stmt.executeUpdate(query);
+        conn.commit();
         stmt.close();
     }
 
@@ -74,13 +63,7 @@ public class MiningDB {
 
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
-        stmt.close();
-    }
-
-    public void dropTablePreAuthTx() throws SQLException {
-        String query = "DROP TABLE IF EXISTS " + TABLE_PRE_AUTH_TX + ";";
-        Statement stmt = conn.createStatement();
-        stmt.executeUpdate(query);
+        conn.commit();
         stmt.close();
     }
 
@@ -94,19 +77,20 @@ public class MiningDB {
 
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
+        conn.commit();
         stmt.close();
     }
 
-    public void dropTableUnknown() throws SQLException {
-        String query = "DROP TABLE IF EXISTS " + TABLE_UNKNOWN + ";";
+    public void clearTable(String table) throws SQLException {
+        String query = "DELETE FROM " + table + ";";
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(query);
+        conn.commit();
         stmt.close();
     }
 
     public void insertSignatureEvents(List<SignatureEvent> events) throws SQLException {
         Statement stmt = conn.createStatement();
-        conn.setAutoCommit(false);
         String sql = null;
 
         for(SignatureEvent e : events) {
@@ -165,9 +149,8 @@ public class MiningDB {
             stmt.addBatch(sql);
         }
 
-        int[] count = stmt.executeBatch();
+        stmt.executeBatch();
         conn.commit();
-        conn.setAutoCommit(true);
         stmt.close();
     }
 
