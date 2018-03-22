@@ -197,7 +197,8 @@ public class MiningDB {
         Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         String sql = "SELECT signerkey, COUNT(signerkey) FROM " + TABLE_ED25519 + "\n" +
                 "GROUP BY signerkey\n" +
-                "HAVING COUNT(signerkey) > 1000;";
+                "HAVING COUNT(signerkey) > 1000\n" +
+                "ORDER BY COUNT(signerkey) DESC;\n";
         return stmt.executeQuery(sql);
     }
 
