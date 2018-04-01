@@ -1,6 +1,5 @@
 package main;
 
-import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -100,17 +99,18 @@ public class Main {
         char choice;
         for (;;) {
             do {
-                System.out.println("               Stellar data mining v0.1           ");
+                System.out.println("               Stellar data mining v0.2           ");
                 System.out.println("==================================================");
                 System.out.println("  1. Create mining database");
                 System.out.println("  2. Mine digital signature events");
                 System.out.println("  3. Create bad randoms HTML file");
-                System.out.println("  4. Create repeated signer keys HTML file\n");
+                System.out.println("  4. Create repeated signer keys HTML file");
+                System.out.println("  5. Dump repeated signer keys (>100 times) and meta data to JSON file.\n");
                 System.out.print("Choose one (q to quit): ");
 
                 choice = getChar();
 
-            } while (choice < '1' || choice > '4' && choice != 'q');
+            } while (choice < '1' || choice > '5' && choice != 'q');
 
             if (choice == 'q') break;
 
@@ -135,6 +135,11 @@ public class Main {
                     // Create repeated signer keys HTML file
                     RepeatedSignerKeyHtmlBuilder htmlBuilder = new RepeatedSignerKeyHtmlBuilder(dbUrl, dbUser, dbPass);
                     htmlBuilder.buildHTML();
+                    break;
+                case '5':
+                    // Dump all repeated signer keys and meta data to JSON file.
+                    RepeatedSignerKeyJSONBuilder jsonBuilder = new RepeatedSignerKeyJSONBuilder(dbUrl, dbUser, dbPass);
+                    jsonBuilder.buildJSON();
                     break;
             }
             System.out.println();

@@ -48,13 +48,9 @@ public class RepeatedSignerKeyHtmlBuilder {
             LocalDate dateTime = LocalDate.now();
             writer.write("<p> Generated on " + dateTime.toString() + ".</p>\n");
 
-            ResultSet rs = miningDB.getRepeatedSignerKeys();
+            ResultSet rs = miningDB.getRepeatedSignerKeys(1000);
 
-            int nKeys = 0;
-            if(rs.last()) {
-                nKeys = rs.getRow();
-                rs.beforeFirst();
-            }
+            int nKeys = miningDB.getRepeatedSignerKeyCount(1000);
 
             writer.write("<h3>" + nKeys + " keys found</h3>\n");
 
@@ -75,7 +71,6 @@ public class RepeatedSignerKeyHtmlBuilder {
             while(rs.next()) {
                 String signerKey = rs.getString(1);
                 int count = rs.getInt(2);
-                List<String> accountIDs = miningDB.getAccountsBySignerKey(signerKey);
 
                 writer.write("<tr>\n");
 
@@ -92,13 +87,19 @@ public class RepeatedSignerKeyHtmlBuilder {
                 // [AccountIDs]
                 writer.write("<td>");
                 writer.write("[");
-                for(int i = 0; i < accountIDs.size(); i++) {
-                    writer.write("<a href=\"https://horizon.stellar.org/accounts/" + accountIDs.get(i) + "\" target=\"_blank\">" + accountIDs.get(i) + "</a>");
-                    if (i < accountIDs.size() - 1) writer.write(",&nbsp;");
+
+                List<String> accountIDs = miningDB.getAccountsBySignerKey(signerKey);
+                if(accountIDs.size() > 0) {
+                    writer.write("<a href=\"https://horizon.stellar.org/accounts/" + accountIDs.get(0) + "\" target=\"_blank\">" + accountIDs.get(0) + "</a>");
                 }
+                for (int i = 1; i < accountIDs.size(); i++) {
+                    String accountID = accountIDs.get(i);
+                    writer.write(",&nbsp;");
+                    writer.write("<a href=\"https://horizon.stellar.org/accounts/" + accountID + "\" target=\"_blank\">" + accountID + "</a>");
+                }
+
                 writer.write("]");
                 writer.write("</td>\n");
-
                 writer.write("</tr>\n");
             }
 

@@ -193,12 +193,69 @@ public class MiningDB {
         return badRandom;
     }
 
-    public ResultSet getRepeatedSignerKeys() throws SQLException {
-        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    // Get the number of repeated signer keys used more than "count" times
+    public int getRepeatedSignerKeyCount(int count) throws SQLException {
+        Statement stmt = conn.createStatement();
+        String sql = "SELECT COUNT(*) FROM (\n" +
+                "SELECT COUNT(signerkey) FROM " + TABLE_ED25519 +"\n" +
+                "GROUP BY signerkey\n" +
+                "HAVING COUNT(signerkey) > " + Integer.toString(count) + "\n" +
+                ") src;";
+        ResultSet rs = stmt.executeQuery(sql);
+        rs.next();
+        int n = rs.getInt(1);
+        rs.close();
+        stmt.close();
+        return n;
+    }
+
+    // Get the number the signer keys used more than "count" times
+    public ResultSet getRepeatedSignerKeys(int count) throws SQLException {
+        Statement stmt = conn.createStatement();
+        stmt.setFetchSize(5000);
         String sql = "SELECT signerkey, COUNT(signerkey) FROM " + TABLE_ED25519 + "\n" +
                 "GROUP BY signerkey\n" +
-                "HAVING COUNT(signerkey) > 1000\n" +
+                "HAVING COUNT(signerkey) > " + Integer.toString(count) + "\n" +
                 "ORDER BY COUNT(signerkey) DESC;\n";
+        return stmt.executeQuery(sql);
+    }
+
+
+    /*
+    // Get the number of accounts that signed a transaction using the specified ed25519 key.
+    public int getAccountsBySignerKeyCount(String signerKey) throws SQLException {
+        Statement stmt = conn.createStatement();
+        String sql = "SELECT COUNT(*) FROM (\n" +
+                "SELECT accountid FROM " + TABLE_ED25519 + "\n" +
+                "WHERE signerkey = '" + signerKey + "'\n" +
+                "GROUP BY accountid\n" +
+                ") src;";
+        ResultSet rs = stmt.executeQuery(sql);
+        rs.next();
+        int n = rs.getInt(1);
+        rs.close();
+        stmt.close();
+        return n;
+    }
+
+    // Get all accounts that signed a transaction using the specified ed25519 key.
+    public ResultSet getAccountsBySignerKey(String signerKey) throws SQLException {
+        Statement stmt = conn.createStatement();
+        stmt.setFetchSize(5000);
+        String sql = "SELECT accountid FROM " + TABLE_ED25519 + "\n" +
+                "WHERE signerkey='" + signerKey + "'\n" +
+                "GROUP BY accountid;";
+
+        return stmt.executeQuery(sql);
+    }
+*/
+
+    // Get all transaction id and signatures for a particular signer key.
+    public ResultSet getTxIdSignaturesBySignerKey(String signerKey) throws SQLException {
+        Statement stmt = conn.createStatement();
+        stmt.setFetchSize(5000);
+        String sql = "SELECT txid, r, s FROM " + TABLE_ED25519 + "\n" +
+                "WHERE signerkey='" + signerKey + "';";
         return stmt.executeQuery(sql);
     }
 
